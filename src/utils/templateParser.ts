@@ -39,7 +39,7 @@ export class TemplateParser {
 		} else if (node.kind === ts.SyntaxKind.CallExpression) {
 			// handle require('./template.html')
 			const call = node as ts.CallExpression;
-			if (call.arguments.length === 1 && call.expression.kind === ts.SyntaxKind.Identifier && call.expression.getText() === 'require') {
+			if (call.arguments.length === 1 && call.expression.kind === ts.SyntaxKind.Identifier && ['require','import'].includes(call.expression.getText()) ) {
 				const relativePath = (call.arguments[0] as ts.StringLiteral).text;
 				const templatePath = path.join(path.dirname(parser.path), relativePath);
 
