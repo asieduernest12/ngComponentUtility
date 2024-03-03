@@ -13,7 +13,7 @@ function theController() {
     /** @type {string} */
     this.name = 'namee'
     this.age = 'age'
-    this.person = { country: 1, age: 5 }
+    this.person = () => ({ country: 1, age: 5 })
 
     this.getName = () => this.name
 
