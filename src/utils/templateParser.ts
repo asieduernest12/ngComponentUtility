@@ -39,16 +39,33 @@ export class TemplateParser {
 		} else if (node.kind === ts.SyntaxKind.CallExpression) {
 			// handle require('./template.html')
 			const call = node as ts.CallExpression;
-			if (call.arguments.length === 1 && call.expression.kind === ts.SyntaxKind.Identifier && ['require','import'].includes(call.expression.getText()) ) {
+			console.log(`call expression: ${call.expression.getText()}`)
+			if (call.arguments.length === 1 && (call.expression.kind === ts.SyntaxKind.Identifier || call.expression.kind === ts.SyntaxKind.ImportKeyword) && (call.expression.getText() === 'import' || call.expression.getText() === 'require') ) {
 				const relativePath = (call.arguments[0] as ts.StringLiteral).text;
 				const templatePath = path.join(path.dirname(parser.path), relativePath);
 
 				return { path: templatePath, pos: { line: 0, character: 0 } } as IComponentTemplate;
 			}
 		} else if (node.kind === ts.SyntaxKind.Identifier) {
+			// handle import
+				// find import statements
+			const importStatements = parser.sourceFile.statements.filter(statement => statement.kind === ts.SyntaxKind.ImportDeclaration) as ts.ImportDeclaration[];
+			const templateImport = importStatements.find(statement => statement.moduleSpecifier.getText().includes('.html'));
+		    //  find template import declaration
+			if (templateImport) {
+				const relativePath = parser.getStringValueFromNode(templateImport.moduleSpecifier);
+				if (relativePath) {
+					// const templatePath = RelativePath.toAbsolute(relativePath);
+					const templatePath = path.join(path.dirname(parser.path), relativePath);
+
+					return { path: templatePath, pos: { line: 0, character: 0 } } as IComponentTemplate;
+				}
+			}
+			
 			// handle template: template
 			const variableStatement = parser.sourceFile.statements
 				.find(statement => statement.kind === ts.SyntaxKind.VariableStatement) as ts.VariableStatement;
+
 			const declarations = variableStatement.declarationList.declarations;
 			const templateDeclaration = declarations.find(declaration => declaration.name.getText() === node.getText());
 			// pass CallExpression (e.g. require('./template.html'))
