@@ -203,7 +203,8 @@
 		"postinstall": "node ./node_modules/vscode/bin/install",
 		"test": "cross-env NODE_ENV=test node ./node_modules/vscode/bin/test",
 		"linter": "tslint -p .",
-		"coverage": "node node_modules/codacy-coverage/bin/codacy-coverage.js < ./coverage/lcov.info"
+		"coverage": "node node_modules/codacy-coverage/bin/codacy-coverage.js < ./coverage/lcov.info",
+		"dc:up": "docker-compose up build",
 	},
 	"devDependencies": {
 		"@types/angular": "^1.6.55",
