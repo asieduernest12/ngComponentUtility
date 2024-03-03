@@ -8,6 +8,7 @@ import { ComponentBinding } from './componentBinding';
 import { TemplateParser } from '../templateParser';
 import { ControllerHelper } from '../controllerHelper';
 import _ = require('lodash');
+import { ControllerParser } from '../controller/controllerParser';
 
 interface IComponentToImport {
 	nameNode: ts.Expression;
@@ -20,12 +21,14 @@ export class ComponentParser {
 	private tsParser: TypescriptParser;
 	private templateParser: TemplateParser;
 	private componentTsParser: Map<string, TypescriptParser>;
+	private controllerParser: ControllerParser;
 	private componentsToImport: IComponentToImport[] = [];
 
 	constructor(file: SourceFile, private controllerHelper: ControllerHelper) {
 		this.tsParser = new TypescriptParser(file);
 		this.componentTsParser = new Map<string, TypescriptParser>();
 		this.templateParser = new TemplateParser();
+		this.controllerParser = new ControllerParser(file);
 	}
 
 	public parse = async () => {
@@ -183,7 +186,7 @@ export class ComponentParser {
 			logVerbose(`Template for ${component.name} not found (member completion and Go To Definition for this component will not work)`);
 		}
 
-		if (!this.controllerHelper.prepareController(component, config, importedFromParser)) {
+		if (!this.controllerHelper.prepareController(component, config, importedFromParser )) {
 			logVerbose(`Controller for ${component.name} not found (member completion and Go To Definition for this component will not work)`);
 		}
 

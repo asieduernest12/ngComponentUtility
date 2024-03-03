@@ -19,6 +19,32 @@ export class ClassProperty extends MemberBase {
 		return result;
 	}
 
+	private static getProgram(sourceFile: ts.SourceFile):ts.Program {
+		return ts.createProgram([sourceFile], {});
+	}
+	
+	public static fromFProperty(controller: Controller, node: ts.BinaryExpression, sourceFile: ts.SourceFile) {
+		const result = new ClassProperty(controller);
+		result.fillCommonFields(node.left, sourceFile);
+		
+		const checker = ClassProperty.getProgram(sourceFile.fullpath).getTypeChecker();
+		const type = checker.getTypeAtLocation(node.right)
+		switch (type.flags) {
+			case ts.TypeFlags.String:
+				result.returnType = 'string';
+				break;
+			case ts.TypeFlags.Number:
+				result.returnType = 'number';
+				break;
+			case ts.TypeFlags.Boolean:
+				result.returnType = 'boolean';
+				break;
+			default:
+				result.returnType = checker.typeToString(type);
+		}
+		return result;
+	}
+
 	public static fromConstructorParameter(controller: Controller, node: ts.ParameterDeclaration, sourceFile: ts.SourceFile) {
 		const result = new ClassProperty(controller);
 		result.fillCommonFields(node, sourceFile);

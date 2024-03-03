@@ -5,6 +5,7 @@ import { Controller } from './controller';
 import { ClassMethod } from './method';
 import { ClassProperty } from './property';
 import { isAngularModule } from '../typescriptParser';
+import { IMember } from './member';
 
 export class ControllerParser {
 	private results: Controller[] = [];
@@ -26,6 +27,8 @@ export class ControllerParser {
 			controller.path = this.file.path;
 			controller.name = controller.className = functionDeclaration.name.text;
 			controller.pos = this.file.sourceFile.getLineAndCharacterOfPosition(functionDeclaration.name.pos);
+			controller.members = this.retrieveFunctionDeclarationMembers(functionDeclaration, controller);
+
 
 			this.results.push(controller);
 		} else if (this.isControllerClass(node)) {
@@ -138,5 +141,107 @@ export class ControllerParser {
 		const typeNames = _.flatMap(classDeclaration.heritageClauses, x => x.types.map(t => t.getText()));
 
 		return typeNames.some(t => t.includes('IComponentOptions'));
+	}
+
+	private retrieveFunctionDeclarationMembers(functionDeclaration: ts.FunctionDeclaration, controller: Controller): IMember[] {
+		// If the function declaration has no body, return an empty array.
+		if (!functionDeclaration.body) {
+			return [];
+		}
+
+		let memberDecs: Array<ClassProperty|ClassMethod> = [];
+
+		// Define a variable to hold the name of the variable that 'this' is assigned to.
+		let thisAlias: string | null = null;
+
+		for (let statement of functionDeclaration.body.statements) {
+
+			// check if this is VariableStatement reassigning this to a variable
+			if (ts.isVariableStatement(statement)) {
+				const declaration = statement.declarationList.declarations[0];
+				const isThis = declaration.initializer && (ts.SyntaxKind.ThisKeyword === declaration.initializer.kind)
+				if (isThis) {
+					thisAlias = declaration.name.getText();
+				}
+			}
+
+			// If the statement is not an expression statement or the expression is not a binary expression, continue to the next statement.
+			if (!ts.isExpressionStatement(statement) || !ts.isBinaryExpression(statement.expression) || !ts.isPropertyAccessExpression(statement.expression.left)) {
+				continue;
+			}
+
+
+
+			// If the left side of the binary expression is not a property access expression, continue to the next statement.
+			if (!ts.isPropertyAccessExpression(statement.expression.left)) {
+				continue;
+			}
+
+			// Check if the left side of the binary expression is a 'this' keyword or the alias of 'this'.
+			if (statement.expression.left.expression.kind !== ts.SyntaxKind.ThisKeyword &&
+				statement.expression.left.name.text !== thisAlias) {
+				continue;
+			}
+			
+			// check if right side is arrow function
+			if (ts.isArrowFunction(statement.expression.right)) {
+				memberDecs.push(ClassMethod.fromFNode(controller, statement.expression, this.file.sourceFile))
+			}
+
+			// check if statement is a function declaration then recursively call retrieveFunctionDeclarationMembers
+			// if (ts.isFunctionDeclaration(statement.expression.right) || ts.isFunctionLike(statement.expression.right)) {
+			// 	const _members = this.retrieveFunctionDeclarationMembers(statement.expression.right, controller);
+			// 	memberDecs.push(..._members);
+			// }
+
+			// check if not arrow or function expression
+			if (!ts.isArrowFunction(statement.expression.right) && !ts.isFunctionExpression(statement.expression.right)) {
+				memberDecs.push(ClassProperty.fromFProperty(controller, statement.expression, this.file.sourceFile))
+			}
+
+
+
+
+			// If all conditions are met, add the name of the property and its initializer to the members array.
+			//   memberDecs.push({ name: statement.expression.left.name.text, value: statement.expression.right });
+			// memberDecs.push([controller,statement]);
+			// memberDecs.push(this.createMember(controller, statement.expression.left))
+		}
+		// return memberDecs.map(([controller,memberStmt])=> this.createMember(controller,memberStmt.expression?.left))
+
+		return memberDecs;
+	}
+
+	private retrieveFunctionDeclarationMembersX(functionDeclaration: ts.FunctionDeclaration, controller: Controller): IMember[] {
+		// If the function declaration has no body or statements, return an empty array.
+		if (!functionDeclaration.body || !functionDeclaration.body.statements) {
+			return [];
+		}
+
+		// // Create a new Controller instance from the function declaration.
+		// const controller = Controller.fromNode(functionDeclaration, sourceFile);
+
+		// let members = functionDeclaration.body.statements.map(statement => {
+		//   // If the statement is a class element, use the createMember function to create an IMember.
+		//   if (ts.isClassElement(statement)) {
+		// 	return this.createMember(controller, statement);
+		//   }
+		// });
+
+		// // Filter out any undefined members (in case createMember returned undefined for any members).
+		// members = members.filter(member => member !== undefined);
+
+		const statements = functionDeclaration.body.statements
+			// filter for property declaration
+			.filter(statement => ts.isPropertyDeclaration(statement))
+
+		const members = statements.map(statement => {
+			// If the statement is a class element, use the createMember function to create an IMember.
+			if (ts.isClassElement(statement)) {
+				return this.createMember(controller, statement);
+			}
+		})
+
+		return members;
 	}
 }

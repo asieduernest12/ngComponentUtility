@@ -5,6 +5,7 @@ import { ComponentParser } from './componentParser';
 import { logParsingError } from '../logging';
 import * as vsc from 'vscode';
 import { ControllerHelper } from '../controllerHelper';
+import { ControllerParser } from '../controller/controllerParser';
 
 export class Component implements IComponentBase {
 	public name: string;
@@ -24,7 +25,7 @@ export class Component implements IComponentBase {
 	public static parse(file: SourceFile, controllers: Controller[]): Promise<Component[]> {
 		return new Promise<Component[]>(async (resolve, _reject) => {
 			try {
-				const controllerHelper = new ControllerHelper(controllers);
+				const controllerHelper = new ControllerHelper([...controllers,... new ControllerParser(file).parse()]);
 				const parser = new ComponentParser(file, controllerHelper);
 				const results: Component[] = await parser.parse();
 

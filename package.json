@@ -231,6 +231,7 @@
 		"lodash": "^4.17.15",
 		"parse5": "^3.0.2",
 		"pretty-hrtime": "^1.0.3",
+		"ts-node": "^10.9.2",
 		"typescript": "^3.5.3"
 	}
 }

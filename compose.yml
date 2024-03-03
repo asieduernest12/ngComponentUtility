@@ -1,0 +1,11 @@
+version: '3.7'
+
+services:
+  build: # use node 15.0.1
+    image: node:15.0.1
+    container_name: build
+    working_dir: /app
+    volumes:
+      - .:/app
+    # command print hello in a while loop and sleep 5 seconds
+    command: /bin/sh -c "while true; do echo hello; sleep 5; done"

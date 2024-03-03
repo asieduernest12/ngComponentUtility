@@ -28,6 +28,29 @@ export class ClassMethod extends MemberBase {
 		return result;
 	}
 
+	private static getProgram(sourceFile: ts.SourceFile):ts.Program {
+		return ts.createProgram([sourceFile], {});
+	}
+	
+	public static fromFNode(controller: Controller, node: ts.BinaryExpression, sourceFile: ts.SourceFile) {
+		const result = new ClassMethod(controller);
+		result.fillCommonFields(node.left, sourceFile);
+		// result.setReturnType(node.right.type as ts.TypeNode);
+		// const checker = ClassMethod.getProgram(sourceFile.fullpath).getTypeChecker();
+		// result.returnType = ts.createArrowFunction([], [], [], node.right.type as ts.TypeNode, undefined, undefined).getText();
+		
+
+		if (isProperty(node.right)) {
+			const initializer = node.right.initializer as ts.ArrowFunction;
+			result.setReturnType(initializer.type);
+			result.parameters = initializer.parameters.map(this.createParameter);
+		} else {
+			result.parameters = node.right.parameters.map(this.createParameter);
+		}
+
+		return result;
+	}
+
 	private static createParameter = (p: ts.ParameterDeclaration): IParameter => {
 		return {
 			name: p.name.getText(),
